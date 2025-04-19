@@ -1,0 +1,52 @@
+{
+    "mistingSettings": {
+        "global": {
+            "manual_control": {
+                "status": "off"
+            },
+            "scheduler_spraying": {
+                "status": "on",
+                "schedule": {
+                    "events": [
+                        {
+                            "on": "2025-04-09T06:00:00Z",
+                            "off": "2025-04-09T06:30:00Z"
+                        },
+                        {
+                            "on": "2025-04-10T15:00:00Z",
+                            "off": "2025-04-10T15:10:00Z"
+                        }
+                    ]
+                }
+            },
+            "environment_auto": {
+                "status": "off",
+                "conditions": {
+                    "temperature_threshold": 30,
+                    "humidity_threshold": 50,
+                    "brightness_threshold": 200
+                }
+            },
+            "ai_control": {
+                "status": "off"
+            }
+        }
+    },
+    "users": {
+        "exampleUser": {
+            "name": "Test User",
+            "email": "test@example.com",
+            "createdAt": "2025-04-08T12:00:00Z"
+        }
+    },
+    "logs": {
+        "initLog": {
+            "user_id": "exampleUser",
+            "action": "init_system",
+            "detail": {
+                "message": "Khởi tạo hệ thống lần đầu"
+            },
+            "timestamp": "2025-04-08T12:01:00Z"
+        }
+    }
+}
