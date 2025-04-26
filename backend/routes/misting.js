@@ -3,6 +3,7 @@ const mistingRoutes = express.Router();
 const { db } = require('../config/firebase');
 const verifyToken = require('../middleware/verifyToken');
 const axios = require('axios');
+const { spawn } = require('child_process');
 
 const ADAFRUIT_IO_KEY = process.env.ADAFRUIT_IO_KEY;
 
@@ -137,6 +138,256 @@ mistingRoutes.post('/config-enviroment', verifyToken, async (req, res) => {
     console.error('❌ Error updating environmental config:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Endpoint to predict water to pump
+mistingRoutes.post('/predict-water', async (req, res) => {
+    const { temperature, humidity } = req.body;
+
+    if (temperature == null || humidity == null) {
+        return res.status(400).json({ error: 'Temperature and humidity are required' });
+    }
+
+    const pythonProcess = spawn('python', ['./services/waterPumpPrediction.py', temperature, humidity]);
+
+    pythonProcess.stdout.on('data', (data) => {
+        const prediction = parseInt(data.toString().trim());
+        res.json({ prediction });
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+        console.error(`Error: ${data}`);
+        res.status(500).json({ error: 'Failed to predict water amount' });
+    });
+});
+
+// ===========================================
+// 5. POST /api/v1/misting/pump-predicted-amount
+// ===========================================
+mistingRoutes.post('/pump-predicted-amount', verifyToken, async (req, res) => {
+    const { temperature, humidity } = req.body;
+    const PUMP_SPEED_ML_PER_SEC = 3; // Speed of pump in ml per second
+
+    if (temperature == null || humidity == null) {
+        return res.status(400).json({ error: 'Temperature and humidity are required' });
+    }
+
+    try {
+        // Get predicted water amount
+        const pythonProcess = spawn('python', ['./services/waterPumpPrediction.py', temperature, humidity]);
+        
+        let predictionData = '';
+        
+        pythonProcess.stdout.on('data', async (data) => {
+            predictionData += data.toString();
+        });
+
+        // Handle potential errors from the Python script
+        pythonProcess.stderr.on('data', (data) => {
+            console.error(`Prediction error: ${data}`);
+            throw new Error('Failed to predict water amount');
+        });
+
+        // Wait for the Python process to complete
+        await new Promise((resolve, reject) => {
+            pythonProcess.on('close', (code) => {
+                if (code !== 0) {
+                    reject(new Error(`Python process exited with code ${code}`));
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        // Parse the predicted water amount
+        const predictedAmount = parseInt(predictionData.trim());
+        if (isNaN(predictedAmount) || predictedAmount <= 0) {
+            throw new Error('Invalid prediction value');
+        }
+
+        // Calculate how long to run the pump (in seconds)
+        const pumpDuration = predictedAmount / PUMP_SPEED_ML_PER_SEC;
+
+        // Start the pump
+        await sendPumpSignalToAdafruit('on');
+        
+        // Log pump start
+        await db.collection('logs').add({
+            mode: 'ai_control',
+            status: 'on',
+            timestamp: new Date(),
+            action: `Started pumping ${predictedAmount} ml based on temperature ${temperature}°C and humidity ${humidity}%`,
+            predictedAmount,
+            pumpDuration
+        });
+
+        // Return immediately to client with the predicted information
+        res.status(200).json({
+            message: 'Pumping started',
+            predictedAmount,
+            estimatedPumpTime: pumpDuration
+        });
+
+        // Set a timer to turn off the pump after the calculated duration
+        setTimeout(async () => {
+            try {
+                // Turn off pump
+                await sendPumpSignalToAdafruit('off');
+                
+                // Log pump stop
+                await db.collection('logs').add({
+                    mode: 'ai_control',
+                    status: 'off',
+                    timestamp: new Date(),
+                    action: `Completed pumping ${predictedAmount} ml of water`
+                });
+                
+                console.log(`✅ Pump stopped after delivering ${predictedAmount} ml of water`);
+            } catch (error) {
+                console.error('❌ Error stopping pump:', error);
+            }
+        }, pumpDuration * 1000); // Convert seconds to milliseconds
+
+    } catch (error) {
+        console.error('❌ Error in pump-predicted-amount:', error);
+        // If there was an error, try to turn off the pump to be safe
+        try {
+            await sendPumpSignalToAdafruit('off');
+        } catch {
+            // Ignore errors when trying to shut off pump in error handler
+        }
+        res.status(500).json({ error: 'Failed to control pump: ' + error.message });
+    }
+});
+
+// ===========================================
+// 6. POST /api/v1/misting/auto-pump-from-sensor
+// ===========================================
+mistingRoutes.post('/auto-pump-from-sensor', verifyToken, async (req, res) => {
+    const { temperature, humidity, light = 50 } = req.body;
+    const PUMP_SPEED_ML_PER_SEC = 3; // Speed of pump in ml per second
+
+    if (temperature == null || humidity == null) {
+        return res.status(400).json({ error: 'Temperature and humidity are required' });
+    }
+
+    try {
+        // Check if AI control mode is enabled
+        const settingsDoc = await db.collection('mistingSettings').doc('global').get();
+        const settings = settingsDoc.data();
+        
+        if (!settings || !settings.ai_control || settings.ai_control.status !== 'on') {
+            return res.status(403).json({ 
+                error: 'AI control mode is not enabled', 
+                message: 'Please enable AI control mode in settings first'
+            });
+        }
+
+        // Get predicted water amount using the Python model
+        const pythonProcess = spawn('python', [
+            './services/waterPumpPrediction.py', 
+            temperature, 
+            humidity,
+            light
+        ]);
+        
+        let predictionData = '';
+        
+        pythonProcess.stdout.on('data', async (data) => {
+            predictionData += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            console.error(`Prediction error: ${data}`);
+            throw new Error('Failed to predict water amount');
+        });
+
+        // Wait for the Python process to complete
+        await new Promise((resolve, reject) => {
+            pythonProcess.on('close', (code) => {
+                if (code !== 0) {
+                    reject(new Error(`Python process exited with code ${code}`));
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        // Parse the predicted water amount
+        const predictedAmount = parseInt(predictionData.trim());
+        if (isNaN(predictedAmount) || predictedAmount <= 0) {
+            return res.status(200).json({ 
+                message: 'No water needed at this time based on sensor readings',
+                predictedAmount: 0
+            });
+        }
+
+        // Calculate how long to run the pump (in seconds)
+        const pumpDuration = predictedAmount / PUMP_SPEED_ML_PER_SEC;
+
+        // Start the pump
+        await sendPumpSignalToAdafruit('on');
+        
+        // Log pump start with sensor data
+        await db.collection('logs').add({
+            mode: 'ai_control',
+            status: 'on',
+            timestamp: new Date(),
+            sensorReadings: {
+                temperature,
+                humidity,
+                light
+            },
+            action: `Started pumping ${predictedAmount} ml based on sensor readings`,
+            predictedAmount,
+            pumpDuration
+        });
+
+        // Return immediately to client with the predicted information
+        res.status(200).json({
+            message: 'Pumping started based on sensor readings',
+            predictedAmount,
+            estimatedPumpTime: pumpDuration,
+            pumpSpeed: PUMP_SPEED_ML_PER_SEC
+        });
+
+        // Set a timer to turn off the pump after the calculated duration
+        setTimeout(async () => {
+            try {
+                // Turn off pump
+                await sendPumpSignalToAdafruit('off');
+                
+                // Log pump stop
+                await db.collection('logs').add({
+                    mode: 'ai_control',
+                    status: 'off',
+                    timestamp: new Date(),
+                    action: `Completed pumping ${predictedAmount} ml of water based on sensor readings`
+                });
+                
+                console.log(`✅ Pump stopped after delivering ${predictedAmount} ml of water`);
+            } catch (error) {
+                console.error('❌ Error stopping pump:', error);
+                
+                // Safety measure: try one more time to stop the pump
+                try {
+                    await sendPumpSignalToAdafruit('off');
+                } catch {
+                    // If it fails again, we've done our best
+                }
+            }
+        }, pumpDuration * 1000); // Convert seconds to milliseconds
+
+    } catch (error) {
+        console.error('❌ Error in auto-pump-from-sensor:', error);
+        // If there was an error, try to turn off the pump to be safe
+        try {
+            await sendPumpSignalToAdafruit('off');
+        } catch {
+            // Ignore errors when trying to shut off pump in error handler
+        }
+        res.status(500).json({ error: 'Failed to control pump: ' + error.message });
+    }
 });
 
 module.exports = { mistingRoutes };
