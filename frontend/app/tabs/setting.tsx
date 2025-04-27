@@ -6,9 +6,14 @@ import LineChartCard from "../../components/layouts/LineChart";
 import SettingTab from "../../components/layouts/TabSetting";
 import SettingCard from "../../components/layouts/CardSetting";
 import HumidityGauge from "../../components/layouts/HumidityGauge";
+import ScheduleModal from "../../components/modals/ScheduleModal";
+import ConditionsModal from "../../components/modals/ConditionalModal";
 import { fetchChartData } from "../../utils/fetchChartData";
 import { getWeeklyAverage } from "../../utils/getWeeklyAvg";
 import useRealtimeValue from "../../hook/useRealtimeValue";
+import { saveEnvironmentConditions } from "../../utils/saveEnvironmentConditions";
+import { useEnvironmentAutoController } from "../../hook/useEnvironmentAutoController";
+import { saveSchedule } from "../../utils/saveSchedule";
 
 type ChartDataPoint = {
   time: string;
@@ -16,6 +21,8 @@ type ChartDataPoint = {
 };
 
 export default function SettingScreen() {
+  useEnvironmentAutoController(); 
+
   const [selectedTab, setSelectedTab] = useState("Setting");
 
   const [temperatureData, setTemperatureData] = useState<ChartDataPoint[]>([]);
@@ -29,6 +36,12 @@ export default function SettingScreen() {
   const latestTemp = useRealtimeValue("temperatureData");
   const latestHumid = useRealtimeValue("humidityData");
   const latestLight = useRealtimeValue("lightData");
+
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [conditionsModalVisible, setConditionsModalVisible] = useState(false);
+
+  const handleScheduleDetails = () => setScheduleModalVisible(true);
+  const handleSetConditions = () => setConditionsModalVisible(true);
 
   useEffect(() => {
     const loadChartData = async () => {
@@ -68,12 +81,14 @@ export default function SettingScreen() {
             description="Based on preset scheduler."
             buttonText="Schedule Details"
             mode="scheduler_spraying"
+            onPressButton={handleScheduleDetails}
           />
           <SettingCard
             title="Environment Auto"
             description="Based on temperature, humidity, light."
             buttonText="Set Conditions"
             mode="environment_auto"
+            onPressButton={handleSetConditions}
           />
           <SettingCard
             title="Artificial Intelligence"
@@ -127,6 +142,34 @@ export default function SettingScreen() {
           />
         </ScrollView>
       )}
+
+      {/* Modals */}
+      <ScheduleModal
+        visible={scheduleModalVisible}
+        onClose={() => setScheduleModalVisible(false)}
+        onSave={async (startTime, endTime, days) => {
+          try {
+            await saveSchedule(startTime, endTime, days);
+            console.log("✅ Schedule saved successfully!");
+            setScheduleModalVisible(false); // Đóng modal sau khi lưu thành công
+          } catch (error) {
+            console.error("❌ Failed to save schedule!", error);
+          }
+        }}
+      />
+      <ConditionsModal
+        visible={conditionsModalVisible}
+        onClose={() => setConditionsModalVisible(false)}
+        onSave={async (conditions) => {
+          try {
+            await saveEnvironmentConditions(conditions);
+            console.log("✅ Conditions saved successfully!", conditions);
+            setConditionsModalVisible(false);
+          } catch (error) {
+            console.error("❌ Failed to save conditions!", error);
+          }
+        }}
+      />
     </View>
   );
 }

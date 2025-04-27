@@ -1,3 +1,3 @@
 // constants.ts
-export const BASE_URL = "http://10.0.141.90:3000";
+export const BASE_URL = "http://10.0.150.212:3000";
 

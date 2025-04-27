@@ -3,18 +3,17 @@ import { View, Text, Switch, TouchableOpacity, StyleSheet, Alert, Platform } fro
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// ✅ Khai báo IP thật của máy bạn
-const BASE_URL = "http://10.0.141.90:3000";
+import { BASE_URL } from "../../constants";
 
 interface SettingCardProps {
   title: string;
   description: string;
   buttonText?: string;
   mode: "manual_control" | "scheduler_spraying" | "environment_auto" | "ai_control";
+  onPressButton?: () => void; 
 }
 
-const SettingCard: React.FC<SettingCardProps> = ({ title, description, buttonText, mode }) => {
+const SettingCard: React.FC<SettingCardProps> = ({ title, description, buttonText, mode, onPressButton }) => {
   const [isEnabled, setIsEnabled] = useState(false);
 
   const fetchInitialStatus = async () => {
@@ -98,8 +97,9 @@ const SettingCard: React.FC<SettingCardProps> = ({ title, description, buttonTex
         />
       </View>
 
+      {/* Button chỉ render nếu có buttonText */}
       {buttonText && (
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={onPressButton}> 
           <Text style={styles.buttonText}>{buttonText}</Text>
         </TouchableOpacity>
       )}
