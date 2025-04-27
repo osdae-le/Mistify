@@ -17,19 +17,28 @@ export default function MessageScreen() {
       {/* Messages */}
       <ScrollView style={styles.messageContainer}>
         <View style={styles.messageCard}>
-          <Text style={styles.messageTitle}>⚠️ Warning temperature</Text>
+          <View style={styles.messageTitleContainer}>
+            <Ionicons name="warning-outline" size={18} color="#1a237e" style={{ marginRight: 6 }} />
+            <Text style={styles.messageTitle}>Warning temperature</Text>
+          </View>
           <Text style={styles.messageText}>Temperature has exceeded 30°C. Turn on.</Text>
           <Text style={styles.timestamp}>20/03/2025 - 12:15</Text>
         </View>
 
         <View style={styles.messageCard}>
-          <Text style={styles.messageTitle}>⚠️ Warning humidity</Text>
+          <View style={styles.messageTitleContainer}>
+            <Ionicons name="warning-outline" size={18} color="#1a237e" style={{ marginRight: 6 }} />
+            <Text style={styles.messageTitle}>Warning humidity</Text>
+          </View>
           <Text style={styles.messageText}>Temperature has exceeded 30°C. Turn on.</Text>
           <Text style={styles.timestamp}>20/03/2025 - 10:43</Text>
         </View>
 
         <View style={styles.messageCard}>
-          <Text style={styles.messageTitle}>⚠️ Warning Brightness</Text>
+          <View style={styles.messageTitleContainer}>
+            <Ionicons name="warning-outline" size={18} color="#1a237e" style={{ marginRight: 6 }} />
+            <Text style={styles.messageTitle}>Warning Brightness</Text>
+          </View>
           <Text style={styles.messageText}>Temperature has exceeded 30°C. Turn on.</Text>
           <Text style={styles.timestamp}>19/03/2025 - 16:27</Text>
         </View>
@@ -92,6 +101,11 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 4,
   },
+  messageTitleContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 6,
+  },
   timestamp: {
     fontSize: 12,
     color: "#888",
@@ -99,3 +113,5 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 });
+
+  
