@@ -35,14 +35,9 @@ const { setupRealtimeListeners } = require('./services/autoWatering');
 app.use(express.json());
 
 // Routes
-const { syncAllFeeds, syncHistoricalData } = require('./services/dataSync');
-const { userRoutes } = require('./routes/user');
-const { mistingRoutes } = require('./routes/misting');
 app.use('/api/v1', userRoutes);
 app.use('/api/v1/misting', mistingRoutes);
 
-// WebSocket
-const setupSocketServer = require('./realtime/socketServer');
 setupSocketServer(io);
 
 // Health check
