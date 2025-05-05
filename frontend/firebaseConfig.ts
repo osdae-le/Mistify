@@ -4,15 +4,13 @@ import { getAuth } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 
 const firebaseConfig = {
-    apiKey: "AIzaSyD6IyDvsZ90HaAwtPlUxyixPA_N0Lxm6JY",
-    authDomain: "misting-system-52.firebaseapp.com",
-    databaseURL: "https://misting-system-52-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "misting-system-52",
-    storageBucket: "misting-system-52.firebasestorage.app",
-    messagingSenderId: "14603783156",
-    appId: "1:14603783156:web:60abf1075c1de1835cc7a1",
-    measurementId: "G-8FB6VWDG0X"
-  };
+  apiKey: "AIzaSyBYerJVda78_IJ0buNa1v_ooxe65qsAM1Y",
+  authDomain: "mistify-7d410.firebaseapp.com",
+  projectId: "mistify-7d410",
+  storageBucket: "mistify-7d410.firebasestorage.app",
+  messagingSenderId: "172498413555",
+  appId: "1:172498413555:web:0662deec75e8a6c6db5486"
+};
 
 const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
