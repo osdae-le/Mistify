@@ -24,6 +24,14 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+const { syncAllFeeds, syncHistoricalData } = require('./services/dataSync');
+const { userRoutes } = require('./routes/user');
+const { mistingRoutes } = require('./routes/misting');
+const setupSocketServer = require('./realtime/socketServer');
+const { setupRealtimeListeners } = require('./services/autoWatering');
+
+// Middleware
 app.use(express.json());
 
 // Routes
@@ -54,4 +62,9 @@ server.listen(PORT, async () => {
   console.log("🚀 Starting real-time sync every 60 seconds...");
   syncAllFeeds();
   setInterval(syncAllFeeds, 60 * 1000);
+  
+  // Start the automatic watering service
+  console.log("🌱 Initializing AI-based automatic watering service...");
+  setupRealtimeListeners();
+  console.log("✅ AI watering service enabled - monitoring sensor changes");
 });
