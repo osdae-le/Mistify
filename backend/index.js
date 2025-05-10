@@ -54,9 +54,9 @@ server.listen(PORT, async () => {
   await syncHistoricalData();
   console.log("✅ Historical data sync completed.");
 
-  console.log("🚀 Starting real-time sync every 60 seconds...");
+  console.log("🚀 Starting real-time sync every 300 seconds...");
   syncAllFeeds();
-  setInterval(syncAllFeeds, 60 * 1000);
+  setInterval(syncAllFeeds, 300 * 1000);
   
   // Start the automatic watering service
   console.log("🌱 Initializing AI-based automatic watering service...");

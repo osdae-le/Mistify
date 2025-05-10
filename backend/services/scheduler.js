@@ -92,10 +92,10 @@ const checkSchedules = async () => {
   }
 };
 
-// ⏰ Cron job: mỗi phút kiểm tra lịch
-cron.schedule("* * * * *", async () => {
+// ⏰ Cron job: mỗi 10 phút kiểm tra lịch
+cron.schedule("*/5 * * * *", async () => {
   console.log("🕐 Cron triggered at:", new Date().toLocaleString());
   await checkSchedules();
 });
 
-console.log("⏰ Scheduler service started and running every minute.");
+console.log("⏰ Scheduler service started and running every 10 minutes.");

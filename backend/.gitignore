@@ -1,2 +1,8 @@
+# dependencies
+node_modules/
+
+
 # Firebase service account
 serviceAccountKey.json
+
+
