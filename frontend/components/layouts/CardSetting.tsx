@@ -10,7 +10,7 @@ interface SettingCardProps {
   description: string;
   buttonText?: string;
   mode: "manual_control" | "scheduler_spraying" | "environment_auto" | "ai_control";
-  onPressButton?: () => void; 
+  onPressButton?: () => void;
 }
 
 const SettingCard: React.FC<SettingCardProps> = ({ title, description, buttonText, mode, onPressButton }) => {
@@ -57,6 +57,24 @@ const SettingCard: React.FC<SettingCardProps> = ({ title, description, buttonTex
         }
       );
       setIsEnabled(newStatus);
+      if (mode === "ai_control" && newStatus) {
+        const sensorData = {
+          temperature: 32.5, 
+          humidity: 45
+        };
+
+        await axios.post(
+          `${BASE_URL}/api/v1/misting/auto-pump-from-sensor`,
+          sensorData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        console.log("✅ AI watering triggered");
+      }
     } catch (err) {
       console.error("❌ Failed to update misting mode:", err);
       Alert.alert("Error", "Could not update misting mode");
@@ -99,7 +117,7 @@ const SettingCard: React.FC<SettingCardProps> = ({ title, description, buttonTex
 
       {/* Button chỉ render nếu có buttonText */}
       {buttonText && (
-        <TouchableOpacity style={styles.button} onPress={onPressButton}> 
+        <TouchableOpacity style={styles.button} onPress={onPressButton}>
           <Text style={styles.buttonText}>{buttonText}</Text>
         </TouchableOpacity>
       )}

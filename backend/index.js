@@ -47,7 +47,7 @@ app.get('/', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, async () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`✅ Server listening on port ${PORT}`);
 
   console.log("📦 Syncing historical data from Adafruit IO...");

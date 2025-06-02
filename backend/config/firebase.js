@@ -3,7 +3,7 @@ const serviceAccount = require('./serviceAccountKey.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  projectId: 'misting-bu'
+  projectId: 'misting-system-52'
 });
 
 const db = admin.firestore();
